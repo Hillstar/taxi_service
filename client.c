@@ -10,30 +10,39 @@
 
 #define MAP_SIZE 20
 
-void Generate_position(int info_buf[3])
+void Generate_info(int info_buf[3], int dest[2])
 {
 	info_buf[0] = 1; // тип отправителя 
+
+	// место нахождения
 	info_buf[1] = rand() % MAP_SIZE;
 	info_buf[2] = rand() % MAP_SIZE;
+
+	// место назначения
+	dest[0] = rand() % MAP_SIZE;
+	dest[1] = rand() % MAP_SIZE;
 }
 
 int main(int argc, char *argv[])
 {
 	int connect_sock = 0;
-	int addr_size, ret_val;
+	int ret_val;
 	int info_buf[3];
+	int recv_buf[2];
+	int dest_buf[2];
 	struct sockaddr_in serv_addr;
-	//char send_buf[] = "Hello\n";
 	srand(getpid()); 
-	Generate_position(info_buf);
+	Generate_info(info_buf, dest_buf);
 
-	socklen_t buf_size = sizeof(info_buf);
+	socklen_t r_buf_size = sizeof(recv_buf);
+	socklen_t s_buf_size = sizeof(info_buf);
+	socklen_t dest_buf_size = sizeof(info_buf);
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = inet_addr("10.25.32.140");
 	serv_addr.sin_port = htons(3007);
 
-	addr_size = sizeof(serv_addr);
+	socklen_t addr_size = sizeof(serv_addr);
 
 	connect_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(connect_sock == -1)
@@ -41,7 +50,7 @@ int main(int argc, char *argv[])
 		perror("cant`t create socket");
 		exit(EXIT_FAILURE);
 	}
-
+	
 	ret_val = connect(connect_sock, (struct sockaddr*)&serv_addr, addr_size);
 	if(ret_val == -1)
 	{
@@ -49,9 +58,16 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	send(connect_sock, info_buf, buf_size, 0);
-	//printf("send buf: %s", send_buf);	
+	send(connect_sock, info_buf, s_buf_size, 0);
+	send(connect_sock, dest_buf, dest_buf_size, 0);
 	printf("my position: (%i, %i)\n", info_buf[1], info_buf[2]);	
+	printf("my dest: (%i, %i)\n", dest_buf[0], dest_buf[1]);
+
+	recv(connect_sock, recv_buf, r_buf_size, 0);
+	if(recv_buf[0] == 1)
+		printf("price: %i\n", recv_buf[1]);
+	else
+		printf("there`s no taxi\n");
 	
 	close(connect_sock);
 
