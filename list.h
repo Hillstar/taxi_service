@@ -1,13 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 struct taxi_unit
 {
 	int id;
 	int pos[2];
-	u_short port;
 };
 
 struct taxi_list
@@ -31,9 +29,10 @@ void Show_list(struct taxi_list *head)
 
 	struct taxi_list *temp = head;
 
+	printf("available taxi(id): ");
 	while(temp != NULL)
 	{
-		printf("taxi id:%i, ", temp->car.id);
+		printf("car %i, ", temp->car.id);
 		temp = temp->next;
 	}
 	printf("\n");
@@ -60,22 +59,18 @@ void Delete_by_id(struct taxi_list **head, int id)
 	if(Is_list_empty(*head) == 1)
 		return;
 
-	if((*head)->next == NULL && (*head)->car.id == id)
-	{
-		free(*head);
-		(*head) = NULL; 
-		return;
-	}
-
 	struct taxi_list *temp = (*head)->next;
 	struct taxi_list *prev = (*head);
 
+	// проверка первого элемента списка
 	if((*head)->car.id == id)
 	{
 		free(*head);
 		(*head) = temp;
+		return;
 	}
 
+	// проверка остальных элементов списка
 	while(temp != NULL)
 	{
 		if(temp->car.id == id)
@@ -97,27 +92,3 @@ void Push(struct taxi_list **head, struct taxi_unit car)
 }
 
 //void Find_in_list(struct taxi_list **head, int id);
-
-
-/*
-int main()
-{
-	struct taxi_list *head = NULL;
-	struct taxi_unit taxi;
-	taxi.id = 1;
-
-	printf("%i is empty\n", Is_list_empty(head));
-	Push(&head, taxi); 
-	taxi.id = 2;
-	Push(&head, taxi); 
-	//printf("%i \n", head->car.id);
-	Show_list(head);
-
-	Delete_by_id(&head,1);
-	Show_list(head);
-
-	//Delete_list(head);
-
-	return 0;
-}
-*/

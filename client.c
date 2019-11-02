@@ -27,8 +27,9 @@ int main(int argc, char *argv[])
 {
 	int connect_sock = 0;
 	int ret_val;
+	char choise;
 	int info_buf[3];
-	int recv_buf[2];
+	int recv_buf[4];
 	int dest_buf[2];
 	struct sockaddr_in serv_addr;
 	srand(getpid()); 
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
 
 	socklen_t r_buf_size = sizeof(recv_buf);
 	socklen_t s_buf_size = sizeof(info_buf);
-	socklen_t dest_buf_size = sizeof(info_buf);
+	socklen_t dest_buf_size = sizeof(dest_buf);
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = inet_addr("10.25.32.140");
@@ -65,7 +66,12 @@ int main(int argc, char *argv[])
 
 	recv(connect_sock, recv_buf, r_buf_size, 0);
 	if(recv_buf[0] == 1)
-		printf("price: %i\n", recv_buf[1]);
+	{
+		printf("price: %i, waiting time: %i, time of ride: %i\n", recv_buf[1], recv_buf[2], recv_buf[3]);
+		printf("will you ride?(y - yes, n - any other key): ");
+		scanf("%c", &choise);
+		send(connect_sock, &choise, sizeof(char), 0);
+	}
 	else
 		printf("there`s no taxi\n");
 	
