@@ -1,0 +1,48 @@
+server start working...
+ - - - - - - - - - - - - - -
+
+clint fd:7
+price:14
+taxi id:1
+car num:10
+start position: (8, 15)
+dest position: (16, 14)
+status: DONE
+ - - - - - - - - - - - - - -
+
+clint fd:8
+price:17
+taxi id:0
+car num:3
+start position: (1, 16)
+dest position: (10, 14)
+status: DONE
+ - - - - - - - - - - - - - -
+
+clint fd:7
+price:16
+taxi id:1
+car num:10
+start position: (13, 10)
+dest position: (9, 18)
+status: DONE
+ - - - - - - - - - - - - - -
+
+clint fd:7
+price:20
+taxi id:0
+car num:3
+start position: (12, 7)
+dest position: (17, 17)
+status: DONE
+ - - - - - - - - - - - - - -
+
+clint fd:7
+price:29
+taxi id:0
+car num:3
+start position: (18, 12)
+dest position: (3, 16)
+status: DONE
+ - - - - - - - - - - - - - -
+

@@ -1,0 +1,35 @@
+CC = gcc
+CFLAGS = -Wall -Werror
+LIBS = -lm
+TARGET = server client taxi
+
+all: list server client taxi
+
+list: list.h list.c
+	$(CC) $(CFLAGS) -c list.c -o list.o
+	ar rcs liblist.a list.o
+	ranlib liblist.a
+
+info: info_header.h info_header.c
+	$(CC) $(CFLAGS) -c info_header.c -llist -o info_header.o
+	ar rcs libinfo_header.a info_header.o
+	ranlib libinfo_header.a
+
+queue: client_queue.h client_queue.c
+	$(CC) $(CFLAGS) -c client_queue.c -llist -o client_queue.o
+	ar rcs libclient_queue.a client_queue.o
+	ranlib libclient_queue.a
+
+server:	server.c info_header.h
+	$(CC) $(CFLAGS) server.c client_queue.h client_queue.c info_header.h info_header.c -o server $(LIBS)
+
+client: client.c
+	$(CC) $(CFLAGS) client.c -o client
+
+taxi: taxi.c
+	$(CC) $(CFLAGS) taxi.c -o taxi
+
+clean:
+	rm server
+	rm client
+	rm taxi
