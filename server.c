@@ -360,72 +360,73 @@ int main(int argc, char *argv[])
 						Push_in_list((List**)&av_taxi_list, &taxi, sizeof(taxi));
 						printf("type: Taxi, id:%i, position:(%i, %i)\n", taxi.id, recv_buf[0], recv_buf[1]);
 
-						ret_val = Pop_client_info_from_queue(&client_queue, &client_info);
-						if(ret_val != -1)
+						ret_val = Get_ride_info_by_taxi_id(cur_rides_list, &ride_info, taxi.id);
+
+						// если таксист уже в поездке
+						if(ret_val == 0) 
 						{
-							printf(" - GOT CLIENT IN QUEUE\n");
-							nearest_taxi = &taxi;
-							dist_to_client = Calc_dist(client_info.start_pos, taxi.pos);
-							dist_to_dest = Calc_dist(client_info.start_pos, client_info.dest_pos);
-							price = (int)(round(dist_to_dest * 2) - num_of_taxi);
-							printf("nearest taxi(id):%i\n", nearest_taxi->id);
-							printf("dist to client: %f\n", dist_to_client);
-							printf("dist from client to dest: %f\n", dist_to_dest);
-
-							// собираем всю инфу о поездке
-							ride_info.client_fd = client_info.fd;
-							ride_info.price = price;
-							ride_info.car = nearest_taxi;
-							ride_info.status = Waiting_for_answer;
-							ride_info.start_pos[0] = client_info.start_pos[0];
-							ride_info.start_pos[1] = client_info.start_pos[1];
-							ride_info.dest_pos[0] = client_info.dest_pos[0];
-							ride_info.dest_pos[1] = client_info.dest_pos[1];
-
+							printf(" - TAXI IS ALREADY ON THE RIDE\n");
 							printf("position: (%i, %i), destonation: (%i, %i)\n", ride_info.start_pos[0], ride_info.start_pos[1], ride_info.dest_pos[0], ride_info.dest_pos[1]);
 
-							// отправляем инфу клиенту
-							c_send_buf[0] = Done;
-							c_send_buf[1] = price;
-							c_send_buf[2] = (int)round(dist_to_client);
-							c_send_buf[3] = (int)round(dist_to_dest);
-							send(client_info.fd, c_send_buf, c_buf_size, 0);
-							nearest_taxi->cur_ride_id = id_ride_counter;
-							id_ride_counter++;
+							// берем инфу из записи о поездке и снова отправляем таксисту
+							nearest_taxi = ride_info.car;
+							dist_to_client = ride_info.dist_to_client;
+							dist_to_dest = ride_info.dist_to_dest;
+							price = ride_info.price;
 
-							// добавляем инфу о поездке
-							Push_in_list((List**)&cur_rides_list, &ride_info, sizeof(ride_info));
+							// заново отправляем инфу таксисту
+							Send_info_to_taxi(nearest_taxi, ride_info.dest_pos, (dist_to_client + dist_to_dest), price);
 
 							// убираем такси из списка свободных
 							Delete_taxi_by_id(&av_taxi_list, nearest_taxi->id); 
-							num_of_taxi--;
+								num_of_taxi--;
 						}
 
-
-						else 
-						{ 
-							ret_val = Get_ride_info_by_taxi_id(cur_rides_list, &ride_info, taxi.id);
-
-							// если таксист уже в поездке
-							if(ret_val == 0) 
+						else
+						{
+							ret_val = Pop_client_info_from_queue(&client_queue, &client_info);
+							// если есть клиенты в очереди ожидания
+							if(ret_val != -1)
 							{
-								printf(" - TAXI IS ALREADY ON THE RIDE\n");
+								printf(" - GOT CLIENT IN QUEUE\n");
+								nearest_taxi = &taxi;
+								dist_to_client = Calc_dist(client_info.start_pos, taxi.pos);
+								dist_to_dest = Calc_dist(client_info.start_pos, client_info.dest_pos);
+								price = (int)(round(dist_to_dest * 2) - num_of_taxi);
+								printf("nearest taxi(id):%i\n", nearest_taxi->id);
+								printf("dist to client: %f\n", dist_to_client);
+								printf("dist from client to dest: %f\n", dist_to_dest);
+
+								// собираем всю инфу о поездке
+								ride_info.client_fd = client_info.fd;
+								ride_info.price = price;
+								ride_info.car = nearest_taxi;
+								ride_info.status = Waiting_for_answer;
+								ride_info.start_pos[0] = client_info.start_pos[0];
+								ride_info.start_pos[1] = client_info.start_pos[1];
+								ride_info.dest_pos[0] = client_info.dest_pos[0];
+								ride_info.dest_pos[1] = client_info.dest_pos[1];
+
 								printf("position: (%i, %i), destonation: (%i, %i)\n", ride_info.start_pos[0], ride_info.start_pos[1], ride_info.dest_pos[0], ride_info.dest_pos[1]);
 
-								// берем инфу из записи о поездке и снова отправляем таксисту
-								nearest_taxi = ride_info.car;
-								dist_to_client = ride_info.dist_to_client;
-								dist_to_dest = ride_info.dist_to_dest;
-								price = ride_info.price;
+								// отправляем инфу клиенту
+								c_send_buf[0] = Done;
+								c_send_buf[1] = price;
+								c_send_buf[2] = (int)round(dist_to_client);
+								c_send_buf[3] = (int)round(dist_to_dest);
+								send(client_info.fd, c_send_buf, c_buf_size, 0);
+								nearest_taxi->cur_ride_id = id_ride_counter;
+								id_ride_counter++;
 
-								// заново отправляем инфу таксисту
-								Send_info_to_taxi(nearest_taxi, ride_info.dest_pos, (dist_to_client + dist_to_dest), price);
+								// добавляем инфу о поездке
+								Push_in_list((List**)&cur_rides_list, &ride_info, sizeof(ride_info));
 
 								// убираем такси из списка свободных
 								Delete_taxi_by_id(&av_taxi_list, nearest_taxi->id); 
 								num_of_taxi--;
 							}
 						}
+
 						num_of_taxi++;
 					}
 				}
