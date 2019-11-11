@@ -2,20 +2,29 @@ server start working...
  - - - - - - - - - - - - - -
 
 clint fd:6
-price:26
+price:28
 taxi id:0
 car num:3
-start position: (19, 5)
-dest position: (15, 18)
+start position: (13, 1)
+dest position: (5, 13)
 status: DONE
  - - - - - - - - - - - - - -
 
 clint fd:6
-price:22
+price:28
 taxi id:0
 car num:3
-start position: (12, 18)
-dest position: (4, 10)
+start position: (14, 16)
+dest position: (0, 12)
+status: DONE
+ - - - - - - - - - - - - - -
+
+clint fd:7
+price:21
+taxi id:0
+car num:3
+start position: (5, 11)
+dest position: (8, 0)
 status: DONE
  - - - - - - - - - - - - - -
 

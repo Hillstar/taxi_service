@@ -84,6 +84,7 @@ struct taxi_unit *Get_nearest_driver(float *dist, struct taxi_list *list, int cl
 
 int main(int argc, char *argv[])
 {
+	int i, j;
 	int accept_sock = 0;
 	int ret_val;
 	struct sockaddr_in serv_addr, client_addr;
@@ -185,7 +186,7 @@ int main(int argc, char *argv[])
 
     	current_size = nfds;
 
-		for(int i = 0; i < current_size; i++)
+		for(i = 0; i < current_size; i++)
     	{
       		if(fds[i].revents == 0)
       		{
@@ -442,11 +443,11 @@ int main(int argc, char *argv[])
 		if(compress_array == TRUE)
     	{
         	compress_array = FALSE;
-      		for(int i = 0; i < nfds; i++)
+      		for(i = 0; i < nfds; i++)
       		{
         		if(fds[i].fd == -1)
         		{
-          			for(int j = i; j < nfds; j++)
+          			for(j = i; j < nfds; j++)
           			{
             			fds[j].fd = fds[j+1].fd;
           			}
@@ -458,7 +459,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// закрываем все сокеты
-	for(int i = 0; i < nfds; i++) 
+	for(i = 0; i < nfds; i++) 
   	{
     	if(fds[i].fd >= 0)
       		close(fds[i].fd);
