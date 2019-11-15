@@ -10,18 +10,18 @@
 #include "info_header.h"
 
 
-void Generate_info(int info_buf[3], int dest_buf[2])
+void Generate_info(struct Init_msg *init_buf, Point *dest_buf)
 {
 	// место нахождения
-	info_buf[0] = rand() % MAP_SIZE;
-	info_buf[1] = rand() % MAP_SIZE;
+	init_buf->x = rand() % MAP_SIZE;
+	init_buf->y = rand() % MAP_SIZE;
 
 	// тип отправителя 
-	info_buf[2] = Client_init; 
+	init_buf->type = Client_init; 
 
 	// место назначения
-	dest_buf[0] = rand() % MAP_SIZE;
-	dest_buf[1] = rand() % MAP_SIZE;
+	dest_buf->x = rand() % MAP_SIZE;
+	dest_buf->y = rand() % MAP_SIZE;
 }
 
 int main(int argc, char *argv[])
@@ -35,12 +35,12 @@ int main(int argc, char *argv[])
 	int connect_sock = 0;
 	int ret_val;
 	char choise;
-	int info_buf[3];
-	int recv_buf[4];
-	int dest_buf[2];
+	struct Init_msg info_buf;
+	struct Client_info_msg recv_buf;
+	Point dest_buf;
 	struct sockaddr_in serv_addr;
 	srand(getpid()); 
-	Generate_info(info_buf, dest_buf);
+	Generate_info(&info_buf, &dest_buf);
 
 	socklen_t r_buf_size = sizeof(recv_buf);
 	socklen_t s_buf_size = sizeof(info_buf);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
-	serv_addr.sin_port = htons(3007);
+	serv_addr.sin_port = htons(PORT);
 
 	socklen_t addr_size = sizeof(serv_addr);
 
@@ -66,39 +66,43 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	send(connect_sock, info_buf, s_buf_size, 0);
-	send(connect_sock, dest_buf, dest_buf_size, 0);
-	printf("my position: (%i, %i)\n", info_buf[0], info_buf[1]);	
-	printf("my dest: (%i, %i)\n", dest_buf[0], dest_buf[1]);
+	send(connect_sock, &info_buf, s_buf_size, 0);
+	send(connect_sock, &dest_buf, dest_buf_size, 0);
+	printf("my position: (%i, %i)\n", info_buf.x, info_buf.y);	
+	printf("my dest: (%i, %i)\n", dest_buf.x, dest_buf.y);
 
-	recv(connect_sock, recv_buf, r_buf_size, 0);
+	recv(connect_sock, &recv_buf, r_buf_size, 0);
 
-	if(recv_buf[0] == Taxi_found)
-	{
-		printf("price: %i, waiting time: %i, time of ride: %i\n", recv_buf[1], recv_buf[2], recv_buf[3]);
-		printf("will you ride?(y - yes, n - any other key): ");
-		scanf("%c", &choise);
-		info_buf[2] = Client_choise;
-		send(connect_sock, info_buf, s_buf_size, 0);
-		send(connect_sock, &choise, sizeof(choise), 0);
-	}
-
-	else
+	if(recv_buf.status != Taxi_found)
 	{
 		printf("there`s no taxi now, please wait....\n");
-		recv(connect_sock, recv_buf, r_buf_size, 0);
-		printf("price: %i, waiting time: %i, time of ride: %i\n", recv_buf[1], recv_buf[2], recv_buf[3]);
-		printf("will you ride?(y - yes, n - any other key): ");
-		scanf("%c", &choise);
-		info_buf[2] = Client_choise;
-		send(connect_sock, info_buf, s_buf_size, 0);
-		send(connect_sock, &choise, sizeof(choise), 0);
+		recv(connect_sock, &recv_buf, r_buf_size, 0);
 	}
+
+	printf("price: %i, waiting time: %i, time of ride: %i\n", recv_buf.price, recv_buf.time_of_waiting, recv_buf.time_of_ride);
+	printf("will you ride?(y - yes, n - any other key): ");
+	scanf("%c", &choise);
+	info_buf.type = Client_choise;
+	send(connect_sock, &info_buf, s_buf_size, 0);
+	send(connect_sock, &choise, sizeof(choise), 0);
 
 	if(choise == 'y')
 	{
-		recv(connect_sock, recv_buf, r_buf_size, 0);
-		if(recv_buf[0] == Done)
+		printf("Taxi is coming\n");
+		recv(connect_sock, &recv_buf, r_buf_size, 0);
+		if(recv_buf.status == Car_waiting_for_client)
+		{
+			printf("Taxi is waiting for you\n");
+		}
+
+		recv(connect_sock, &recv_buf, r_buf_size, 0);
+		if(recv_buf.status == Executing)
+		{
+			printf("The ride has begun\n");
+		}
+
+		recv(connect_sock, &recv_buf, r_buf_size, 0);
+		if(recv_buf.status == Done)
 		{
 			printf("You are at destonation\n");
 		}

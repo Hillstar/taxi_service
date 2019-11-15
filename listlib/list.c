@@ -36,6 +36,7 @@ void Push_in_list(struct List **head, void *data, int data_size)
     }
     new_node->data = malloc(data_size);
     memcpy(new_node->data, data, data_size);
+
     if(Is_list_empty(*head) == TRUE)
     {
         new_node->next = NULL;
@@ -45,11 +46,7 @@ void Push_in_list(struct List **head, void *data, int data_size)
 
     else
     {
-        struct List *temp = *head;
-        while(temp->next != NULL)
-            temp = temp->next;
-
-        temp->next = new_node;
-        temp->next->next = NULL;
+        new_node->next = (*head);
+        (*head) = new_node;
     }
 }

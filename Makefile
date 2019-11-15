@@ -1,19 +1,31 @@
 CC = gcc
-CFLAGS = -Wall -Werror
-LIBS = -lm
+CFLAGS = -Wall -Werror 
+INC =  -I. -I./sharedlib -I./listlib 
+LDIR = -L./sharedlib -L./listlib
+LIBS = -lm -llist -ldl -lshared
+SRCS = server.c client.c taxi.c
+OBJS = $(patsubst %.c, %.o, $(SRCS))
 TARGET = server client taxi
 DEPS = info_header.h
+EXP_PATH = LD_LIBRARY_PATH=$(shell pwd)/sharedlib
 
-all: $(TARGET)
+all: llist lshared export_path $(TARGET) 
 
-server: $(DEPS)	server.c taxi_list.c client_queue.c ride_list.c
-	$(CC) $(CFLAGS) $(DEPS) server.c taxi_list.c client_queue.c ride_list.c list.c -o server $(LIBS)
+$(TARGET): %: %.c $(DEPS)
+	$(CC) $(CFLAGS) $(INC) $< -o $@ $(LIBS) $(LDIR)
 
-client: client.c $(DEPS)
-	$(CC) $(CFLAGS) $(DEPS) client.c -o client
+export_path:
+	echo $(shell $(EXP_PATH))
 
-taxi: taxi.c $(DEPS)
-	$(CC) $(CFLAGS) $(DEPS) taxi.c -o taxi
+llist:
+	make list_lib -C listlib -f listlib.mk
+
+lshared:
+	make shared_lib -C sharedlib -f sharedlib.mk
 
 clean:
 	rm $(TARGET)
+	rm log -f
+	rm stat -f
+	make clean -C sharedlib -f sharedlib.mk
+	make clean -C listlib -f listlib.mk

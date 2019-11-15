@@ -64,6 +64,38 @@ void Delete_taxi_by_id(struct taxi_list **head, int id)
 	}
 }
 
+int Delete_taxi_by_fd(struct taxi_list **head, int fd)
+{
+	if(Is_list_empty((List*)*head) == TRUE)
+		return -1;
+
+	struct taxi_list *temp = (*head)->next;
+	struct taxi_list *prev = (*head);
+
+	// проверка первого элемента списка
+	if((*head)->car->fd == fd)
+	{
+		free(*head);
+		(*head) = temp;
+		return 0;
+	}
+
+	// проверка остальных элементов списка
+	while(temp != NULL)
+	{
+		if(temp->car->fd == fd)
+		{
+			prev->next = temp->next;
+			free(temp);
+			return 0;
+		}
+		prev = temp;
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
 void Show_reg_list(struct taxi_list *head)
 {
 	if(Is_list_empty((List*)head) == TRUE)

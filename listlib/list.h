@@ -5,7 +5,10 @@
 #include <unistd.h>
 #include <string.h>
 
-enum Bool { FALSE, TRUE };
+#define FALSE 0
+#define TRUE 1
+
+//static  enum Bool { FALSE, TRUE };
 
 typedef struct List
 {
