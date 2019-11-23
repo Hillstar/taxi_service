@@ -61,29 +61,29 @@ void Delete_client_by_fd(struct Client_queue **head, int fd)
 
 void Push_in_queue(struct Client_queue **head, struct Client_info *client_info, int data_size) 
 {
-    struct Client_queue *new_node;
-    new_node = malloc(sizeof(struct List));
-    if(new_node == NULL)
-    {
-        printf("can`t malloc\n");
-        exit(EXIT_FAILURE);
-    }
-    new_node->client_info = malloc(sizeof(struct Client_info));
-    memcpy(new_node->client_info, client_info, data_size);
-    if(Is_list_empty((List *)*head) == TRUE)
-    {
-        new_node->next = NULL;
-        (*head) = new_node;
-        return;
-    }
+	struct Client_queue *new_node;
+	new_node = malloc(sizeof(struct List));
+	if(new_node == NULL)
+	{
+		printf("can`t malloc\n");
+		exit(EXIT_FAILURE);
+	}
+	new_node->client_info = malloc(sizeof(struct Client_info));
+	memcpy(new_node->client_info, client_info, data_size);
+	if(Is_list_empty((List *)*head) == TRUE)
+	{
+		new_node->next = NULL;
+		(*head) = new_node;
+		return;
+	}
 
-    else
-    {
-        struct Client_queue *temp = *head;
-        while(temp->next != NULL)
-            temp = temp->next;
+	else
+	{
+		struct Client_queue *temp = *head;
+		while(temp->next != NULL)
+			temp = temp->next;
 
-        temp->next = new_node;
-        temp->next->next = NULL;
-    }
+		temp->next = new_node;
+		temp->next->next = NULL;
+	}
 }

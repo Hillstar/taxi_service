@@ -3,7 +3,9 @@
 
 #define MAP_SIZE 20
 #define MAX_FD 200
-#define PORT 3007
+#define NUM_THREADS 4
+#define PORT 3005
+
 
 enum Fd_types {	Client, Taxi, Listen_sock };
 
@@ -23,6 +25,9 @@ enum Is_there_a_av_taxi
 enum Ride_status
 	{ Done, Executing, Car_waiting_for_answer, Car_waiting_for_client, Car_going_to_client };
 
+enum Handle_sock_return_values
+	{ Connection_closed, Connection_is_active };
+
 
 typedef struct Point
 {
@@ -35,6 +40,7 @@ struct Fd_info
 	int type;
 	int unit_id;
 	int cur_ride_id;
+	int is_waititng;
 };
 
 struct Init_msg
@@ -61,6 +67,14 @@ struct Client_info_msg
 	int price;
 	int time_of_waiting;
 	int time_of_ride;
+};
+
+struct Thread_args
+{
+	struct pollfd *fds;
+	struct Fd_info *fd_info;
+	int *nfds;
+	struct Sock_queue **sock_queue;
 };
 
 #endif

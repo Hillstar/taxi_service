@@ -13,6 +13,7 @@ struct taxi_unit
 	int fd;
 	Point pos;
 	int cur_ride_id;
+	int status;
 };
 
 struct taxi_list
@@ -21,7 +22,11 @@ struct taxi_list
 	struct taxi_unit *car;
 };
 
-void Show_taxi_list(struct taxi_list *head);
+int Set_taxi_status(struct taxi_list *head, int id, int status);
+
+int Set_taxi_pos(struct taxi_list *head, int id, struct Point new_pos);
+
+int Get_taxi_status(struct taxi_list *head, int id);
 
 int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_num);
 

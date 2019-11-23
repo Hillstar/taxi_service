@@ -12,8 +12,8 @@ list_lib: $(OBJS) $(TARGET)
 
 $(TARGET): $(OBJS) 
 	ar rcs $@ $^
-	rm $(OBJS) 
+	rm $(OBJS) -f
 
 clean:
-	rm $(TARGET)
+	rm $(TARGET) -f
 	rm $(OBJS) -f

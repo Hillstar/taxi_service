@@ -1,8 +1,8 @@
 CC = gcc
-CFLAGS = -Wall -Werror 
+CFLAGS = -Wall -Werror -g
 INC =  -I. -I./sharedlib -I./listlib 
 LDIR = -L./sharedlib -L./listlib
-LIBS = -lm -llist -ldl -lshared
+LIBS = -lm -lpthread -llist -ldl -lshared
 SRCS = server.c client.c taxi.c
 OBJS = $(patsubst %.c, %.o, $(SRCS))
 TARGET = server client taxi
@@ -24,7 +24,7 @@ lshared:
 	make shared_lib -C sharedlib -f sharedlib.mk
 
 clean:
-	rm $(TARGET)
+	rm $(TARGET) -f
 	rm log -f
 	rm stat -f
 	make clean -C sharedlib -f sharedlib.mk

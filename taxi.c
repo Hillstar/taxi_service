@@ -14,12 +14,12 @@ void Generate_position(struct Init_msg *info_buf)
 {
 	info_buf->x = rand() % MAP_SIZE;
 	info_buf->y = rand() % MAP_SIZE;
-	info_buf->type = Taxi_init; // тип отправителя 
+	info_buf->type = Taxi_init;
 }
 
 int main(int argc, char *argv[])
 {
-	if(argc < 3)
+	if(argc < 2)
 	{
 		printf("too few arguments\n");
 		exit(EXIT_FAILURE);
@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
 
 	srand(getpid()); 
 	Generate_position(&send_buf);
-	car_num = atoi(argv[2]);
+	//car_num = atoi(argv[2]);
+	car_num = rand() % 14000;
 
 	socklen_t r_buf_size = sizeof(recv_buf);
 	socklen_t s_buf_size = sizeof(send_buf);
@@ -68,86 +69,90 @@ int main(int argc, char *argv[])
 		
 	while(taxi_stop == False)
 	{
-		if(cur_state == Not_initialized)
+		switch(cur_state)
 		{
-			send(connect_sock, &car_num, sizeof(car_num), 0);
-			ret_val = recv(connect_sock, &id, sizeof(id), 0);
-			if(ret_val == -1)
-			{
-				perror("can`t recv");
-				exit(EXIT_FAILURE);
-			}
-			printf("my id:%i\n", id);
-			cur_state = Waiting_for_order;
-		}
-
-		if(cur_state == Waiting_for_order)
-		{
-			ret_val = recv(connect_sock, &recv_buf, r_buf_size, 0);
-			printf("status = %i\n", recv_buf.status);
-			switch(recv_buf.status)
-			{
-				case Car_waiting_for_client:
-					cur_state = Waiting_for_client;
-					break;
-
-				case Executing:
-					cur_state = Going_to_dest;
-					break;
-					
-				case Car_going_to_client:
-					cur_state = Going_to_client;
-					break;
-
-				case Car_waiting_for_answer:
-					cur_state = Waiting_for_client_answer;
-					break;
-
-				default:
-					printf("oops, something wrong\n");
+			case Not_initialized:
+				send(connect_sock, &car_num, sizeof(car_num), 0);
+				ret_val = recv(connect_sock, &id, sizeof(id), 0);
+				if(ret_val == -1)
+				{
+					perror("can`t recv");
 					exit(EXIT_FAILURE);
-			}	
-		}
+				}
+				printf("my id:%i\n", id);
+				cur_state = Waiting_for_order;
+				break;
 
-		if(cur_state == Waiting_for_client_answer)
-		{
-			cur_state = Waiting_for_order;
-			continue;
-		}
-		
+			case Waiting_for_order:
+				ret_val = recv(connect_sock, &recv_buf, r_buf_size, 0);
+				if(ret_val == -1)
+				{
+					perror("can`t recv");
+					exit(EXIT_FAILURE);
+				}
+				printf("status = %i\n", recv_buf.status);
+				switch(recv_buf.status)
+				{
+					case Car_waiting_for_client:
+						cur_state = Waiting_for_client;
+						break;
 
-		if(cur_state == Going_to_client)
-		{
-			printf("Destonation: (%i, %i), time of ride: %i, price: %i\n", recv_buf.dest_x, recv_buf.dest_y, recv_buf.time_of_ride, recv_buf.price);
-			// едем до клиента
-			sleep(recv_buf.dist_to_client / 2);
+					case Executing:
+						cur_state = Going_to_dest;
+						break;
+						
+					case Car_going_to_client:
+						cur_state = Going_to_client;
+						break;
 
-			// на месте, ждет клиента
-			cur_state = Waiting_for_client;
-			send_buf.type = Taxi_waiting_for_client;
-			send(connect_sock, &send_buf, s_buf_size, 0);
-		}
-		
-		if(cur_state == Waiting_for_client)
-		{
-			printf("Enter any key to start ride");
-			getchar();
-			cur_state = Going_to_dest;
-			send_buf.type = Taxi_going_to_dest;
-			send(connect_sock, &send_buf, s_buf_size, 0);
-		}
+					case Car_waiting_for_answer:
+						cur_state = Waiting_for_client_answer;
+						break;
 
-		if(cur_state == Going_to_dest)
-		{
-			sleep(recv_buf.dist_to_dest / 2);
-			send_buf.type = Taxi_ride_done;
-			send_buf.x = recv_buf.dest_x;
-			send_buf.y = recv_buf.dest_y;
-			cur_state = Waiting_for_order;
-			send(connect_sock, &send_buf, s_buf_size, 0);;
-			printf("my position: (%i, %i), ", send_buf.x, send_buf.y);
-			printf("my car number: %i\n", car_num);
-		}
+					default:
+						printf("oops, something wrong\n");
+						exit(EXIT_FAILURE);
+				}
+				break;
+
+			case Waiting_for_client_answer:
+				cur_state = Waiting_for_order;
+				break;
+
+			case Going_to_client:
+				printf("Destonation: (%i, %i), time of ride: %i, price: %i\n", recv_buf.dest_x, recv_buf.dest_y, recv_buf.time_of_ride, recv_buf.price);
+				// едем до клиента
+				sleep((int)recv_buf.dist_to_client / 2);
+
+				// на месте, ждет клиента
+				cur_state = Waiting_for_client;
+				send_buf.type = Taxi_waiting_for_client;
+				send(connect_sock, &send_buf, s_buf_size, 0);
+				break;
+
+			case Waiting_for_client:
+				printf("Enter any key to start ride");
+				getchar();
+				cur_state = Going_to_dest;
+				send_buf.type = Taxi_going_to_dest;
+				send(connect_sock, &send_buf, s_buf_size, 0);
+				break;
+
+			case Going_to_dest:
+				sleep((int)recv_buf.dist_to_dest / 2);
+				send_buf.type = Taxi_ride_done;
+				send_buf.x = recv_buf.dest_x;
+				send_buf.y = recv_buf.dest_y;
+				cur_state = Waiting_for_order;
+				send(connect_sock, &send_buf, s_buf_size, 0);;
+				printf("my position: (%i, %i), ", send_buf.x, send_buf.y);
+				printf("my car number: %i\n", car_num);
+				break;
+
+			default:
+				printf("oops, something wrong\n");
+				exit(EXIT_FAILURE);
+		}	
 	}
 
 	close(connect_sock);

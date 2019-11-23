@@ -1,21 +1,5 @@
 #include "taxi_list.h"
 
-void Show_taxi_list(struct taxi_list *head)
-{
-	if(Is_list_empty((List*)head) == TRUE)
-		return;
-
-	struct taxi_list *temp = head;
-
-	printf("available taxi(id): ");
-	while(temp != NULL)
-	{
-		printf("car %i, ", temp->car->id);
-		temp = temp->next;
-	}
-	printf("\n");
-}
-
 int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_num)
 {
 	struct taxi_list *temp = head;
@@ -103,10 +87,10 @@ void Show_reg_list(struct taxi_list *head)
 
 	struct taxi_list *temp = head;
 
-	printf("registered taxi: ");
+	printf("registered taxi:\n");
 	while(temp != NULL)
 	{
-		printf("car №%i (id: %i), ", temp->car->car_num, temp->car->id);
+		printf(" - car №%i (id: %i), status: %i, pos(%i, %i)\n", temp->car->car_num, temp->car->id, temp->car->id, temp->car->pos.x, temp->car->pos.y);
 		temp = temp->next;
 	}
 	printf("\n");
@@ -120,6 +104,59 @@ int Get_id_by_num(struct taxi_list *head, int car_num)
 	{
 		if(temp->car->car_num == car_num)
 			return temp->car->id;
+
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
+int Set_taxi_status(struct taxi_list *head, int id, int status)
+{
+	struct taxi_list *temp = head;
+
+	while(temp != NULL)
+	{
+		if(temp->car->id == id)
+		{
+			temp->car->status = status;
+			return 0;
+		}
+
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
+int Get_taxi_status(struct taxi_list *head, int id)
+{
+	struct taxi_list *temp = head;
+
+	while(temp != NULL)
+	{
+		if(temp->car->id == id)
+		{
+			return temp->car->status;
+		}
+
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
+int Set_taxi_pos(struct taxi_list *head, int id, struct Point new_pos)
+{
+	struct taxi_list *temp = head;
+
+	while(temp != NULL)
+	{
+		if(temp->car->id == id)
+		{
+			temp->car->pos = new_pos;
+			return 0;
+		}
 
 		temp = temp->next;
 	}
