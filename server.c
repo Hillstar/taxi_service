@@ -550,7 +550,6 @@ int Handle_socket(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info fd_inf
 
 				else
 				{
-
 					printf("new registered car\n");
 					Show_reg_list(*reg_list);
 					taxi.fd = cur_sock;	// записываем номер сокета
