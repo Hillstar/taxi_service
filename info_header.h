@@ -4,7 +4,7 @@
 #define MAP_SIZE 20
 #define MAX_FD 200
 #define NUM_THREADS 4
-#define PORT 3005
+#define PORT 3007
 
 
 enum Fd_types {	Client, Taxi, Listen_sock };

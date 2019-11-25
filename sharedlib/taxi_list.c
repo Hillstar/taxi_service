@@ -18,10 +18,10 @@ int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_
 	return -1;
 }
 
-void Delete_taxi_by_id(struct taxi_list **head, int id)
+int Delete_taxi_by_id(struct taxi_list **head, int id)
 {
 	if(Is_list_empty((List*)*head) == TRUE)
-		return;
+		return -1;
 
 	struct taxi_list *temp = (*head)->next;
 	struct taxi_list *prev = (*head);
@@ -31,7 +31,7 @@ void Delete_taxi_by_id(struct taxi_list **head, int id)
 	{
 		free(*head);
 		(*head) = temp;
-		return;
+		return 0;
 	}
 
 	// проверка остальных элементов списка
@@ -41,11 +41,13 @@ void Delete_taxi_by_id(struct taxi_list **head, int id)
 		{
 			prev->next = temp->next;
 			free(temp);
-			return;
+			return 0;
 		}
 		prev = temp;
 		temp = temp->next;
 	}
+
+	return -1;
 }
 
 int Delete_taxi_by_fd(struct taxi_list **head, int fd)
@@ -90,7 +92,7 @@ void Show_reg_list(struct taxi_list *head)
 	printf("registered taxi:\n");
 	while(temp != NULL)
 	{
-		printf(" - car №%i (id: %i), status: %i, pos(%i, %i)\n", temp->car->car_num, temp->car->id, temp->car->id, temp->car->pos.x, temp->car->pos.y);
+		printf(" - car №%i (id: %i), status: %i\n", temp->car->car_num, temp->car->id, temp->car->id);
 		temp = temp->next;
 	}
 	printf("\n");

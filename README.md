@@ -9,7 +9,7 @@ After that, type in the following commands to start:
 
 		./server
 		./client ip_address 
-		./taxi ip_address
+		./taxi ip_address car_num
 
 For testing, use the following command:
 

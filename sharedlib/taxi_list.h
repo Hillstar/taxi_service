@@ -30,7 +30,7 @@ int Get_taxi_status(struct taxi_list *head, int id);
 
 int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_num);
 
-void Delete_taxi_by_id(struct taxi_list **head, int id);
+int Delete_taxi_by_id(struct taxi_list **head, int id);
 
 int Delete_taxi_by_fd(struct taxi_list **head, int fd);
 

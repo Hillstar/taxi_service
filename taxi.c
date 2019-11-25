@@ -19,7 +19,7 @@ void Generate_position(struct Init_msg *info_buf)
 
 int main(int argc, char *argv[])
 {
-	if(argc < 2)
+	if(argc < 3)
 	{
 		printf("too few arguments\n");
 		exit(EXIT_FAILURE);
@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
 
 	srand(getpid()); 
 	Generate_position(&send_buf);
-	//car_num = atoi(argv[2]);
-	car_num = rand() % 14000;
+	car_num = atoi(argv[2]);
+	//car_num = rand() % 14000;
 
 	socklen_t r_buf_size = sizeof(recv_buf);
 	socklen_t s_buf_size = sizeof(send_buf);
@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case Going_to_client:
+				printf("Going to client\n");
 				printf("Destonation: (%i, %i), time of ride: %i, price: %i\n", recv_buf.dest_x, recv_buf.dest_y, recv_buf.time_of_ride, recv_buf.price);
 				// едем до клиента
 				sleep((int)recv_buf.dist_to_client / 2);
@@ -131,6 +132,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case Waiting_for_client:
+				printf("waiting for client\n");
 				printf("Enter any key to start ride");
 				getchar();
 				cur_state = Going_to_dest;
@@ -139,6 +141,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case Going_to_dest:
+				printf("going to dest\n");
 				sleep((int)recv_buf.dist_to_dest / 2);
 				send_buf.type = Taxi_ride_done;
 				send_buf.x = recv_buf.dest_x;

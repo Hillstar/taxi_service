@@ -159,7 +159,7 @@ int Get_nearest_driver(float *dist, struct taxi_unit *nearest_driver, struct tax
 
 void Close_connection(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info *fd_info, struct taxi_list **reg_list, struct Client_queue **client_queue, int *num_of_av_taxi)
 {
-	int k = 0;
+	int ret_val, k = 0;
 	struct Ride_info info_buf;
 	struct taxi_unit taxi;
 	pthread_mutex_lock(&fds_lock);
@@ -172,11 +172,14 @@ void Close_connection(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info *f
 	{
 		printf("Taxi disconnected\n");
 		pthread_mutex_lock(&reg_list_lock);
-		if(fd_info->cur_ride_id == -1)	// если текущей поездки нет
+		ret_val = Get_ride_info_by_taxi_id(cur_rides_list, &info_buf, fd_info->unit_id);
+		if(ret_val == -1)	// если текущей поездки нет
 		{
-			Delete_taxi_by_id(reg_list, fd_info->unit_id);
+			ret_val = Delete_taxi_by_id(reg_list, fd_info->unit_id);
+			printf("ret_val = %i\n", ret_val);
+			if(ret_val == 0)
+				(*num_of_av_taxi)--;
 			Show_reg_list(*reg_list);
-			(*num_of_av_taxi)--;
 		}
 		pthread_mutex_unlock(&reg_list_lock);
 	}
@@ -184,14 +187,23 @@ void Close_connection(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info *f
 	else
 	{
 		pthread_mutex_lock(&client_queue_lock);
-		Get_ride_info_by_client_fd(cur_rides_list, &info_buf, cur_sock);
-		if(info_buf.status == Car_waiting_for_answer)
+		ret_val = Get_ride_info_by_client_fd(cur_rides_list, &info_buf, cur_sock);
+		if(ret_val == 0 && info_buf.status == Car_waiting_for_answer)
 		{
 			taxi = info_buf.car;
 			pthread_mutex_lock(&reg_list_lock);
 			Set_taxi_status(*reg_list, taxi.id, Waiting_for_order);
-			(*num_of_av_taxi)++;
+			if(Is_list_empty((List*)*reg_list) == FALSE)
+			{
+				Show_reg_list(*reg_list);
+				(*num_of_av_taxi)++;
+			}
 			pthread_mutex_unlock(&reg_list_lock);
+
+			pthread_mutex_lock(&ride_list_lock);
+			Delete_ride_by_taxi_id(&cur_rides_list, taxi.id);
+			pthread_mutex_unlock(&ride_list_lock);
+			fd_info->cur_ride_id = -1;
 		}
 
 		Delete_client_by_fd(client_queue, fds[k].fd);
@@ -306,7 +318,7 @@ void Compress_fds_array(struct pollfd fds[MAX_FD], int *nfds)
 	pthread_mutex_unlock(&fds_lock);
 }
 
-int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_queue **client_queue, struct taxi_list **reg_list, int *num_of_av_taxi)
+int Handle_socket(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info fd_info[MAX_FD], struct Client_queue **client_queue, struct taxi_list **reg_list, int *num_of_av_taxi, int *nfds)
 {
 	int ret_val;
 	struct Init_msg recv_buf;
@@ -407,8 +419,10 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 				ret_val = send(cur_sock, &c_send_buf, c_buf_size, 0);
 				if(ret_val <= 0)
 				{
-					if(ret_val < 0)
-						perror("send() failed");
+					pthread_mutex_lock(&reg_list_lock);
+					Set_taxi_status(*reg_list, taxi.id, Waiting_for_order);
+					pthread_mutex_unlock(&reg_list_lock);
+					perror("send() failed");
 					return Connection_closed;
 				}
 				taxi.cur_ride_id = id_ride_counter;
@@ -485,12 +499,6 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 			pthread_mutex_lock(&reg_list_lock);
 			Set_taxi_status(*reg_list, taxi.id, Waiting_for_client);
 			pthread_mutex_unlock(&reg_list_lock);
-			if(ret_val <= 0)
-			{
-				if(ret_val < 0)
-					perror("send() failed");
-				return Connection_closed;
-			}
 			break;
 
 
@@ -500,21 +508,15 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 			c_send_buf.status = Executing;
 			taxi = ride_info.car;
 			printf("taxi with id: %i executes the order\n", ride_info.car.id);
+			ret_val = send(ride_info.client_fd, &c_send_buf, sizeof(c_send_buf), 0);
 			pthread_mutex_lock(&reg_list_lock);
 			Set_taxi_status(*reg_list, taxi.id, Going_to_dest);
 			pthread_mutex_unlock(&reg_list_lock);
-			ret_val = send(ride_info.client_fd, &c_send_buf, sizeof(c_send_buf), 0);
-			if(ret_val <= 0)
-			{
-				if(ret_val < 0)
-					perror("send() failed");
-				return Connection_closed;
-			}
 			break;
 
 		case Taxi_init:
 		case Taxi_ride_done:
-			fd_info[cur_sock].cur_ride_id = -1;
+			(*num_of_av_taxi)++;
 			if(recv_buf.type == Taxi_init)
 			{
 				ret_val = recv(cur_sock, &car_num, (socklen_t)sizeof(car_num), 0);
@@ -548,6 +550,7 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 
 				else
 				{
+
 					printf("new registered car\n");
 					Show_reg_list(*reg_list);
 					taxi.fd = cur_sock;	// записываем номер сокета
@@ -558,6 +561,9 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 							perror("send() failed");
 						return Connection_closed;
 					}
+					ret_val = Get_taxi_status(*reg_list, taxi.id);
+					if(ret_val != Waiting_for_order)
+						(*num_of_av_taxi)--;
 				}
 
 				fd_info[cur_sock].type = Taxi;
@@ -577,9 +583,8 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 				ret_val = send(ride_info.client_fd, &c_send_buf, sizeof(c_send_buf), 0);
 				if(ret_val <= 0)
 				{
-					if(ret_val < 0)
-						perror("send() failed");
-					return Connection_closed;
+					Close_connection(ride_info.client_fd, fds, &fd_info[ride_info.client_fd], reg_list, client_queue, num_of_av_taxi);
+					Compress_fds_array(fds, nfds);	
 				}
 				Print_in_stat_file(&ride_info);
 				pthread_mutex_lock(&ride_list_lock);
@@ -591,7 +596,6 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 			taxi.pos.y = recv_buf.y;
 			Set_taxi_pos(*reg_list, taxi.id, taxi.pos);
 
-			(*num_of_av_taxi)++;
 			printf("type: Taxi, id:%i, position:(%i, %i)\n", taxi.id, recv_buf.x, recv_buf.y);
 			ret_val = Get_ride_info_by_taxi_id(cur_rides_list, &ride_info, taxi.id);
 
@@ -612,6 +616,7 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 
 			else
 			{
+				fd_info[cur_sock].cur_ride_id = -1;
 				pthread_mutex_lock(&client_queue_lock);
 				ret_val = Pop_client_info_from_queue(client_queue, &client_info);
 				pthread_mutex_unlock(&client_queue_lock);
@@ -659,8 +664,9 @@ int Handle_socket(int cur_sock, struct Fd_info fd_info[MAX_FD], struct Client_qu
 					ret_val = send(client_info.fd, &c_send_buf, c_buf_size, 0);
 					if(ret_val <= 0)
 					{
-						if(ret_val < 0)
-							perror("send() failed");
+						pthread_mutex_lock(&reg_list_lock);
+						Set_taxi_status(*reg_list, taxi.id, Waiting_for_order);
+						pthread_mutex_unlock(&reg_list_lock);
 						return Connection_closed;
 					}
 					taxi.cur_ride_id = id_ride_counter;
@@ -719,7 +725,7 @@ void *Handle_fds_array(void *t_args)
 		pthread_mutex_unlock(&get_sock_lock);
 		*/
 
-		ret_val = Handle_socket(cur_sock, fd_info, &client_queue, &reg_list, &num_of_av_taxi);
+		ret_val = Handle_socket(cur_sock, fds, fd_info, &client_queue, &reg_list, &num_of_av_taxi, nfds);
 		if(ret_val == Connection_closed)
 		{
 			Close_connection(cur_sock, fds, &fd_info[cur_sock], &reg_list, &client_queue, &num_of_av_taxi);
