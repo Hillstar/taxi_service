@@ -160,6 +160,8 @@ int Get_nearest_driver(float *dist, struct taxi_unit *nearest_driver, struct tax
 void Close_connection(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info *fd_info, struct taxi_list **reg_list, struct Client_queue **client_queue, int *num_of_av_taxi)
 {
 	int k = 0;
+	struct Ride_info info_buf;
+	struct taxi_unit taxi;
 	pthread_mutex_lock(&fds_lock);
 
 	// ищем в fds поле с этим сокетом
@@ -182,7 +184,18 @@ void Close_connection(int cur_sock, struct pollfd fds[MAX_FD], struct Fd_info *f
 	else
 	{
 		pthread_mutex_lock(&client_queue_lock);
+		Get_ride_info_by_client_fd(cur_rides_list, &info_buf, cur_sock);
+		if(info_buf.status == Car_waiting_for_answer)
+		{
+			taxi = info_buf.car;
+			pthread_mutex_lock(&reg_list_lock);
+			Set_taxi_status(*reg_list, taxi.id, Waiting_for_order);
+			(*num_of_av_taxi)++;
+			pthread_mutex_unlock(&reg_list_lock);
+		}
+
 		Delete_client_by_fd(client_queue, fds[k].fd);
+
 		printf("Client disconnected\n");
 		pthread_mutex_unlock(&client_queue_lock);
 	}	
