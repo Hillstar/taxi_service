@@ -16,9 +16,9 @@ struct Ride_info_list
 
 struct Ride_info
 {
-	int ride_id;
 	int client_fd;
-	struct taxi_unit car;
+	int client_id;
+	int taxi_id;
 	int status;
 	Point start_pos;
 	Point dest_pos;
@@ -29,16 +29,24 @@ struct Ride_info
 	int taxi_state;
 };
 
+int Check_ride_by_taxi_id(struct Ride_info_list *head, int taxi_id);
+
 int Get_ride_info_by_ride_id(struct Ride_info_list *head, struct Ride_info *info_buf, int ride_id);
 
 int Get_ride_info_by_taxi_id(struct Ride_info_list *head, struct Ride_info *info_buf, int taxi_id);
+
+int Get_ride_info_by_client_id(struct Ride_info_list *head, struct Ride_info *info_buf, int client_id);
 
 int Get_ride_info_by_client_fd(struct Ride_info_list *head, struct Ride_info *info_buf, int client_fd);
 
 void Show_curent_rides(struct Ride_info_list *head);
 
-int Set_ride_status(struct Ride_info_list *head, int client_fd, int status);
+int Set_ride_status(struct Ride_info_list *head, int client_id, int status);
+
+int Set_ride_client_fd(struct Ride_info_list *head, int client_id, int client_fd);
 
 void Delete_ride_by_taxi_id(struct Ride_info_list **head, int taxi_id);
+
+void Delete_ride_by_client_id(struct Ride_info_list **head, int client_id);
 
 #endif

@@ -11,9 +11,9 @@
 struct Client_info
 {
 	int fd;
+	int id;
 	Point start_pos;
 	Point dest_pos;
-	int ride_id;
 };
 
 struct Client_queue
@@ -24,10 +24,10 @@ struct Client_queue
 
 int Pop_client_info_from_queue(struct Client_queue **head, struct Client_info *client_info);
 
-void Push_in_queue(struct Client_queue **head, struct Client_info *client_info, int data_size);
+void Push_client_in_queue(struct Client_queue **head, struct Client_info *client_info, int data_size);
 
 void Show_client_queue(struct Client_queue *head);
 
-void Delete_client_by_fd(struct Client_queue **head, int fd);
+void Delete_client_by_id(struct Client_queue **head, int id);
 
 #endif

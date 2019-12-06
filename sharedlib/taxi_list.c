@@ -1,14 +1,13 @@
 #include "taxi_list.h"
 
-int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_num)
+int Check_taxi_by_id(struct Taxi_list *head, int id)
 {
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
 
 	while(temp != NULL)
 	{
-		if(temp->car->car_num == car_num)
+		if(temp->car->id == id)
 		{
-			memcpy(taxi, temp->car, sizeof(struct taxi_unit));
 			return 0;
 		}
 
@@ -18,13 +17,31 @@ int Get_taxi_by_car_num(struct taxi_list *head, struct taxi_unit *taxi, int car_
 	return -1;
 }
 
-int Delete_taxi_by_id(struct taxi_list **head, int id)
+int Get_taxi_by_id(struct Taxi_list *head, struct Taxi_unit *taxi, int id)
+{
+	struct Taxi_list *temp = head;
+
+	while(temp != NULL)
+	{
+		if(temp->car->id == id)
+		{
+			memcpy(taxi, temp->car, sizeof(struct Taxi_unit));
+			return 0;
+		}
+
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
+int Delete_taxi_by_id(struct Taxi_list **head, int id)
 {
 	if(Is_list_empty((List*)*head) == TRUE)
 		return -1;
 
-	struct taxi_list *temp = (*head)->next;
-	struct taxi_list *prev = (*head);
+	struct Taxi_list *temp = (*head)->next;
+	struct Taxi_list *prev = (*head);
 
 	// проверка первого элемента списка
 	if((*head)->car->id == id)
@@ -50,13 +67,13 @@ int Delete_taxi_by_id(struct taxi_list **head, int id)
 	return -1;
 }
 
-int Delete_taxi_by_fd(struct taxi_list **head, int fd)
+int Delete_taxi_by_fd(struct Taxi_list **head, int fd)
 {
 	if(Is_list_empty((List*)*head) == TRUE)
 		return -1;
 
-	struct taxi_list *temp = (*head)->next;
-	struct taxi_list *prev = (*head);
+	struct Taxi_list *temp = (*head)->next;
+	struct Taxi_list *prev = (*head);
 
 	// проверка первого элемента списка
 	if((*head)->car->fd == fd)
@@ -82,30 +99,33 @@ int Delete_taxi_by_fd(struct taxi_list **head, int fd)
 	return -1;
 }
 
-void Show_reg_list(struct taxi_list *head)
+void Show_taxi_list(struct Taxi_list *head)
 {
 	if(Is_list_empty((List*)head) == TRUE)
 		return;
 
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
 
 	printf("registered taxi:\n");
 	while(temp != NULL)
 	{
-		printf(" - car №%i (id: %i), status: %i\n", temp->car->car_num, temp->car->id, temp->car->id);
+		printf(" - car(id: %i), fd: %i, status: %i\n", temp->car->id, temp->car->fd, temp->car->status);
 		temp = temp->next;
 	}
 	printf("\n");
 }
 
-int Get_id_by_num(struct taxi_list *head, int car_num)
+int Set_taxi_fd(struct Taxi_list *head, int id, int fd)
 {
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
 
 	while(temp != NULL)
 	{
-		if(temp->car->car_num == car_num)
-			return temp->car->id;
+		if(temp->car->id == id)
+		{
+			temp->car->fd = fd;
+			return 0;
+		}
 
 		temp = temp->next;
 	}
@@ -113,9 +133,9 @@ int Get_id_by_num(struct taxi_list *head, int car_num)
 	return -1;
 }
 
-int Set_taxi_status(struct taxi_list *head, int id, int status)
+int Set_taxi_status(struct Taxi_list *head, int id, int status)
 {
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
 
 	while(temp != NULL)
 	{
@@ -131,9 +151,9 @@ int Set_taxi_status(struct taxi_list *head, int id, int status)
 	return -1;
 }
 
-int Get_taxi_status(struct taxi_list *head, int id)
+int Get_taxi_status(struct Taxi_list *head, int id)
 {
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
 
 	while(temp != NULL)
 	{
@@ -148,9 +168,26 @@ int Get_taxi_status(struct taxi_list *head, int id)
 	return -1;
 }
 
-int Set_taxi_pos(struct taxi_list *head, int id, struct Point new_pos)
+int Get_taxi_fd(struct Taxi_list *head, int id)
 {
-	struct taxi_list *temp = head;
+	struct Taxi_list *temp = head;
+
+	while(temp != NULL)
+	{
+		if(temp->car->id == id)
+		{
+			return temp->car->fd;
+		}
+
+		temp = temp->next;
+	}
+
+	return -1;
+}
+
+int Set_taxi_pos(struct Taxi_list *head, int id, struct Point new_pos)
+{
+	struct Taxi_list *temp = head;
 
 	while(temp != NULL)
 	{
@@ -164,4 +201,33 @@ int Set_taxi_pos(struct taxi_list *head, int id, struct Point new_pos)
 	}
 
 	return -1;
+}
+
+void Push_taxi_in_list(struct Taxi_list **head, struct Taxi_unit *taxi, int data_size) 
+{
+	struct Taxi_list *new_node;
+	new_node = malloc(sizeof(struct List));
+	if(new_node == NULL)
+	{
+		printf("can`t malloc\n");
+		exit(EXIT_FAILURE);
+	}
+	new_node->car = malloc(sizeof(struct Taxi_unit));
+	memcpy(new_node->car, taxi, data_size);
+	if(Is_list_empty((List *)*head) == TRUE)
+	{
+		new_node->next = NULL;
+		(*head) = new_node;
+		return;
+	}
+
+	else
+	{
+		struct Taxi_list *temp = *head;
+		while(temp->next != NULL)
+			temp = temp->next;
+
+		temp->next = new_node;
+		temp->next->next = NULL;
+	}
 }

@@ -10,11 +10,10 @@
 #include "info_header.h"
 
 
-void Generate_position(struct Init_msg *info_buf)
+void Generate_position(struct Init_msg *init_msg_buf)
 {
-	info_buf->x = rand() % MAP_SIZE;
-	info_buf->y = rand() % MAP_SIZE;
-	info_buf->type = Taxi_init;
+	init_msg_buf->x = rand() % MAP_SIZE;
+	init_msg_buf->y = rand() % MAP_SIZE;
 }
 
 int main(int argc, char *argv[])
@@ -25,67 +24,78 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	int connect_sock = 0;
+	srand(getpid());
+
 	int ret_val;
-	struct Init_msg send_buf;
-	struct Taxi_info_msg recv_buf; 
-	int id = 0;
-	int car_num;
-	int taxi_stop = False;
-	int cur_state = Not_initialized;
-	struct sockaddr_in serv_addr;
-
-	srand(getpid()); 
-	Generate_position(&send_buf);
-	car_num = atoi(argv[2]);
-	//car_num = rand() % 14000;
-
-	socklen_t r_buf_size = sizeof(recv_buf);
-	socklen_t s_buf_size = sizeof(send_buf);
-
+	
 	// init connect sock
-	connect_sock = socket(AF_INET, SOCK_STREAM, 0);
+	int connect_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(connect_sock == -1)
 	{
 		perror("cant`t create socket");
 		exit(EXIT_FAILURE);
 	}
 
+	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
 	serv_addr.sin_port = htons(PORT);
 	socklen_t s_addr_size = sizeof(serv_addr);
 
 	ret_val = connect(connect_sock, (struct sockaddr*)&serv_addr, s_addr_size);
-	if(ret_val == -1)
+	if(ret_val < 0)
 	{
 		perror("cant`t connect");
 		exit(EXIT_FAILURE);
 	}
 
-	send(connect_sock, &send_buf, s_buf_size, 0);;
-	printf("my position: (%i, %i), ", send_buf.x, send_buf.y);
-	printf("my car number: %i\n", car_num);
+	int id = atoi(argv[2]);
+
+	struct Init_msg init_msg_buf;
+	init_msg_buf.id = id;
+	init_msg_buf.type = Taxi_init;
+	socklen_t s_buf_size = sizeof(init_msg_buf);
+	Generate_position(&init_msg_buf);
+
+	struct Taxi_info_msg recv_buf; 
+	socklen_t r_buf_size = sizeof(recv_buf);
 		
+	int connection_duplicate = False;
+	int cur_state = Not_initialized;
+	int taxi_stop = False;
+
 	while(taxi_stop == False)
 	{
 		switch(cur_state)
 		{
 			case Not_initialized:
-				send(connect_sock, &car_num, sizeof(car_num), 0);
-				ret_val = recv(connect_sock, &id, sizeof(id), 0);
-				if(ret_val == -1)
+				send(connect_sock, &init_msg_buf, s_buf_size, 0);
+				printf("my position: (%i, %i), ", init_msg_buf.x, init_msg_buf.y);
+				printf("my car number: %i\n", id);
+				printf("my id:%i\n", id);
+				
+				ret_val = recv(connect_sock, &connection_duplicate, sizeof(connection_duplicate), 0);
+				if(ret_val < 0)
 				{
 					perror("can`t recv");
 					exit(EXIT_FAILURE);
 				}
-				printf("my id:%i\n", id);
-				cur_state = Waiting_for_order;
+
+				if(connection_duplicate == True)
+				{
+					printf("Your last session wasn`t end. Pls, try to reconnect later\n");
+					taxi_stop = True;
+				}
+
+				else
+					cur_state = Waiting_for_order;
+
 				break;
 
 			case Waiting_for_order:
+				printf("Waiting for order\n");
 				ret_val = recv(connect_sock, &recv_buf, r_buf_size, 0);
-				if(ret_val == -1)
+				if(ret_val < 0)
 				{
 					perror("can`t recv");
 					exit(EXIT_FAILURE);
@@ -106,6 +116,7 @@ int main(int argc, char *argv[])
 						break;
 
 					case Car_waiting_for_answer:
+						sleep(1);
 						cur_state = Waiting_for_client_answer;
 						break;
 
@@ -121,35 +132,36 @@ int main(int argc, char *argv[])
 
 			case Going_to_client:
 				printf("Going to client\n");
-				printf("Destonation: (%i, %i), time of ride: %i, price: %i\n", recv_buf.dest_x, recv_buf.dest_y, recv_buf.time_of_ride, recv_buf.price);
+				printf("Destonation: (%i, %i), time of ride: %i, price: %i\n", recv_buf.dest.x, recv_buf.dest.y, recv_buf.time_of_ride, recv_buf.price);
 				// едем до клиента
 				sleep((int)recv_buf.dist_to_client / 2);
 
 				// на месте, ждет клиента
 				cur_state = Waiting_for_client;
-				send_buf.type = Taxi_waiting_for_client;
-				send(connect_sock, &send_buf, s_buf_size, 0);
+				init_msg_buf.type = Taxi_waiting_for_client;
+				send(connect_sock, &init_msg_buf, s_buf_size, 0);
 				break;
 
 			case Waiting_for_client:
 				printf("waiting for client\n");
-				printf("Enter any key to start ride");
+				printf("Enter any key to start ride\n");
 				getchar();
 				cur_state = Going_to_dest;
-				send_buf.type = Taxi_going_to_dest;
-				send(connect_sock, &send_buf, s_buf_size, 0);
+				init_msg_buf.type = Taxi_going_to_dest;
+				send(connect_sock, &init_msg_buf, s_buf_size, 0);
 				break;
 
 			case Going_to_dest:
 				printf("going to dest\n");
 				sleep((int)recv_buf.dist_to_dest / 2);
-				send_buf.type = Taxi_ride_done;
-				send_buf.x = recv_buf.dest_x;
-				send_buf.y = recv_buf.dest_y;
+				init_msg_buf.type = Taxi_ride_done;
+				init_msg_buf.x = recv_buf.dest.x;
+				init_msg_buf.y = recv_buf.dest.y;
+				send(connect_sock, &init_msg_buf, s_buf_size, 0);
+				printf("ride is done\n");
+				printf("my position: (%i, %i), ", init_msg_buf.x, init_msg_buf.y);
+				printf("my car number: %i\n", id);
 				cur_state = Waiting_for_order;
-				send(connect_sock, &send_buf, s_buf_size, 0);;
-				printf("my position: (%i, %i), ", send_buf.x, send_buf.y);
-				printf("my car number: %i\n", car_num);
 				break;
 
 			default:

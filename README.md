@@ -8,7 +8,7 @@ On command line, type in the following command to make:
 After that, type in the following commands to start:
 
 		./server
-		./client ip_address 
+		./client ip_address id
 		./taxi ip_address car_num
 
 For testing, use the following command:

@@ -20,16 +20,16 @@ void Show_client_queue(struct Client_queue *head)
 
 	struct Client_queue *temp = head;
 
-	printf("Clients in queue: ");
+	printf("Clients in queue: \n");
 	while(temp != NULL)
 	{
-		printf("client_fd:%i, ", temp->client_info->fd);
+		printf(" - client_id:%i\n", temp->client_info->id);
 		temp = temp->next;
 	}
 	printf("\n");
 }
 
-void Delete_client_by_fd(struct Client_queue **head, int fd)
+void Delete_client_by_id(struct Client_queue **head, int id)
 {
 	if(Is_list_empty((List*)*head) == TRUE)
 		return;
@@ -38,7 +38,7 @@ void Delete_client_by_fd(struct Client_queue **head, int fd)
 	struct Client_queue *prev = (*head);
 
 	// проверка первого элемента списка
-	if((*head)->client_info->fd == fd)
+	if((*head)->client_info->id == id)
 	{
 		free(*head);
 		(*head) = temp;
@@ -48,7 +48,7 @@ void Delete_client_by_fd(struct Client_queue **head, int fd)
 	// проверка остальных элементов списка
 	while(temp != NULL)
 	{
-		if(temp->client_info->fd == fd)
+		if(temp->client_info->id == id)
 		{
 			prev->next = temp->next;
 			free(temp);
@@ -59,7 +59,7 @@ void Delete_client_by_fd(struct Client_queue **head, int fd)
 	}
 }
 
-void Push_in_queue(struct Client_queue **head, struct Client_info *client_info, int data_size) 
+void Push_client_in_queue(struct Client_queue **head, struct Client_info *client_info, int data_size) 
 {
 	struct Client_queue *new_node;
 	new_node = malloc(sizeof(struct List));
